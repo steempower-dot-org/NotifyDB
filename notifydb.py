@@ -40,7 +40,7 @@ class blocks_handler:
    def GET(self,by,which):
        global mc
        web.header('Content-Type','application/json')
-       retval = mc.get(str('GETBLOCK::%s::%s' % (by,which)))
+       retval = mc.get(str('GETBLOCK::%s::%s' % (by,which)).encode('utf8') )
        if retval == None:
           retval = str(self._GET(by,which))
           mc.set('GETBLOCK::%s::%s' % (by,which),retval)
