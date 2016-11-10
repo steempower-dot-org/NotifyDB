@@ -15,7 +15,7 @@ resp_data = json.loads(resp)
 
 head_block_no = resp_data['result']['head_block_number']
 
-for x in xrange(head_block_no):
+for x in xrange(1,head_block_no):
     ws.send('{"id":%s,"method":"get_block","params":["%s"]}' % (x+1,x))
     resp        = ws.recv()
     resp_data   = json.loads(resp)['result']
