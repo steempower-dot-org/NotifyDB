@@ -6,13 +6,13 @@ import dbstore
 import config
 import memcache
 import pubsub
+from config import chain
 from eventlet import wsgi, websocket
 
 @websocket.WebSocketWSGI
 def ws_handle_sub(ws):
     global pubsub_router
     for msg in pubsub_router.subscribe('test'):
-        print msg
         ws.send(msg)
 
 @websocket.WebSocketWSGI
@@ -48,6 +48,7 @@ class blocks_handler:
           mc.set('GETBLOCK::%s::%s' % (by,which),retval)
        return retval
    def POST(self):
+       global block_db
        data      = web.data()
        try:
           json_data  = json.loads(data)
@@ -56,6 +57,12 @@ class blocks_handler:
           block_data = json_data['data']
        except:
           return web.badrequest()
+       if block_id == '$':
+          block_id = chain.gen_block_id(block_num,block_data)
+       if not chain.valid_block(block_data):
+          return web.badrequest()
+       interested_parties = chain.get_interested_parties(block_data)
+       return json.dumps(list(interested_parties))
 
 
 def dispatcher(environ, start_response):
