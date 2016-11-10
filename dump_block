@@ -1,0 +1,18 @@
+#!/usr/bin/env python
+""" A simple utility script to dump a block from a steemd instance
+    Just invoke it and it spits out JSON
+"""
+
+import json
+import config
+import websocket
+import sys
+
+ws = websocket.WebSocket()
+ws.connect(config.steemd_endpoint)
+ws.send('{"id":1,"method":"get_block","params":["%s"]}' % sys.argv[1])
+
+resp = json.loads(ws.recv())
+notifydb_data = {'id':'$','number':sys.argv[1],'data':resp['result']}
+
+print json.dumps(notifydb_data)

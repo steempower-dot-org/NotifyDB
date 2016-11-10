@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# A simple utility for importing blocks in JSON format from dump_block
+
+curl -X POST -d "@-" http://localhost:12036/blocks
+
+
