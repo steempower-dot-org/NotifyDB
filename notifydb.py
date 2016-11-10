@@ -65,6 +65,8 @@ class blocks_handler:
        for r in workpool.imap(lambda x: chain.notify_interested_party(block_data,x,pubsub_router),interested_parties):
            pass
        db_hash = block_db.store_block(block_data,block_num,block_id)
+       for r in workpool.imap(lambda x: block_db.store_interested_party(db_hash=db_hash,party=x), interested_parties):
+           pass
        return json.dumps({'id':block_id,'number':block_num,'db_hash':db_hash})
 
 

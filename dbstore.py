@@ -8,22 +8,26 @@ import config
 
 class BlockStore:
    def __init__(self):
-       self.id_idx_db    = gdbm.open('blockid_idx.db', 'cf')
-       self.num_idx_db   = gdbm.open('blocknum_idx.db','cf')
-       self.blockdata_db = gdbm.open('blockdata.db' ,  'cf')
-       self.mc           = memcache.Client(config.mc_endpoint)
+       self.id_idx_db     = gdbm.open('blockid_idx.db', 'cf')
+       self.num_idx_db    = gdbm.open('blocknum_idx.db','cf')
+       self.blockdata_db  = gdbm.open('blockdata.db',   'cf')
+       self.party_idxa_db = gdbm.open('party_idx_a.db', 'cf')
+       self.party_idxb_db = gdbm.open('party_idx_b.db', 'cf')
+       self.mc            = memcache.Client(config.mc_endpoint)
    def reset(self):
        """ Resets the database - clears the ondisk stores and wipes cache
        """
        self.id_idx_db.close()
        self.num_idx_db.close()
        self.blockdata_db.close()
+       self.party_idxa_db.close()
+       self.party_idxb_db.close()
        self.mc.flush_all()
-       self.id_idx_db    = gdbm.open('blockid_idx.db', 'nf')
-       self.num_idx_db   = gdbm.open('blocknum_idx.db','nf')
-       self.blockdata_db = gdbm.open('blockdata.db' ,  'nf')
- 
-
+       self.id_idx_db     = gdbm.open('blockid_idx.db', 'nf')
+       self.num_idx_db    = gdbm.open('blocknum_idx.db','nf')
+       self.blockdata_db  = gdbm.open('blockdata.db' ,  'nf')
+       self.party_idxa_db = gdbm.open('party_idx_a.db', 'nf')
+       self.party_idxb_db = gdbm.open('party_idx_b.db', 'nf')
    def store_block(self,block_data,block_number,block_id):
        """ block_data is the block data to be saved (duh)
            block_number and block_id may be strings or integers but will become strings
@@ -32,14 +36,14 @@ class BlockStore:
            returns the DB hash on success, or None on error
        """
        if type(block_data) is str:
-          db_save_data = zlib.compress(block_data)
+          db_save_data = zlib.compress(block_data,9)
        elif type(block_data) is dict:
-          db_save_data = zlib.compress(json.dumps(block_data))
+          db_save_data = zlib.compress(json.dumps(block_data),9)
        else:
           return None
 
        db_save_str = db_save_data
-       db_hash     = str(hashlib.sha256(db_save_str).digest())
+       db_hash     = str(hashlib.sha256(db_save_str).hexdigest())
 
        # here we actually store it in the DB
        self.id_idx_db[str(block_id)     ] = db_hash
@@ -53,7 +57,28 @@ class BlockStore:
        # now update memcache
        self.mc.set_multi({'ID::%s'  % str(block_id):     db_hash,
                           'NUM::%s' % str(block_number): db_hash})
-       return db_hash.encode('hex')
+       return db_hash
+
+   def store_interested_party(self,db_hash=None, party=None):
+       """ Stores an interested party next to the specified DB hash
+       """
+       if self.party_idxa_db.has_key(db_hash):
+          parties = set(json.loads(zlib.decompress(self.party_idxa_db[db_hash])))
+       else:
+          parties = set()
+       parties.add(party)
+       if self.party_idxb_db.has_key(party):
+          hashes = set(json.loads(zlib.decompress(self.party_idxb_db[party])))
+       else:
+          hashes = set()
+       hashes.add(db_hash)
+       
+       parties_db = zlib.compress(json.dumps(list(parties)))
+       hashes_db  = zlib.compress(json.dumps(list(hashes)))
+       self.party_idxa_db[db_hash] = parties_db
+       self.party_idxb_db[party]   = hashes_db
+       self.party_idxa_db.sync()
+       self.party_idxb_db.sync()
 
    def get_block(self,block_number=None,block_id=None):
        """ Try to load the specified block from the database
@@ -83,6 +108,8 @@ class BlockStore:
        self.id_idx_db.close()
        self.num_idx_db.close()
        self.blockdata_db.close()
+       self.party_idxa_db.close()
+       self.party_idxb_db.close()
 
 if __name__=='__main__':
    raw_input('WARNING: Running tests for dbstore will wipe any existing database - if you don\'t want that, hit ctrl-c now, otherwise hit enter\n')
@@ -91,11 +118,11 @@ if __name__=='__main__':
 
    my_block = {'my_stuff':1234}
    print 'Storing dict block 1 with ID \'mystuffblock1\': %s' % str(my_block)
-   print 'Return val from store_block() is (hex encoded) %s'  % str(store.store_block(my_block,1,'mystuffblock1')).encode('hex')
+   print 'Return val from store_block() is (hex encoded) %s'  % str(store.store_block(my_block,1,'mystuffblock1'))
    
    my_block2 = json.dumps({'my_other_stuff':4567})
    print 'Storing JSON dict block 2 with ID \'myotherstuff\': %s' % str(my_block2)
-   print 'Return val from store_block() is (hex encoded) %s'      % str(store.store_block(my_block2,2,'myotherstuff')).encode('hex')
+   print 'Return val from store_block() is (hex encoded) %s'      % str(store.store_block(my_block2,2,'myotherstuff'))
 
    print 'Retrieving block 1 by ID: %s'                 % str(store.get_block(block_id='mystuffblock1'))
    print 'Retrieving block 1 by number: %s'             % str(store.get_block(block_number=1))
@@ -112,3 +139,5 @@ if __name__=='__main__':
    os.unlink('blockdata.db')
    os.unlink('blockid_idx.db')
    os.unlink('blocknum_idx.db')
+   os.unlink('party_idx_a.db')
+   os.unlink('party_idx_b.db')
