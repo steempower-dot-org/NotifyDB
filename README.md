@@ -35,25 +35,16 @@ For websockets:
 
 /ws/comments                 gets a stream of ALL comments as they come in
 
-/ws/custom                   gets a stream of ALL custom JSON ops as they come in
+To refine websockets stream you can subscribe to single relevant feeds by keyword
 
+e.g
 
+ /ws/sub/<keyword>
 
-Most of the above can be refined to relevant params:
+ /ws/sub/steempower
 
-/ws/comments/by-author/<authorName>
+   will send all transaction ops that reference steempower
 
-/ws/comments/by-tag/<tagName>
-
-/ws/votes/on-author/<authorName>
-
-/ws/votes/by-voter/<voterName>
-
-/ws/votes/on-post/<postPermlink>
-
-/ws/custom/by-id/<customOpID>
-
-/ws/custom/by-author/<authorName>
 
 Backups etc:
 

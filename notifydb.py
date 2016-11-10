@@ -7,24 +7,22 @@ import config
 import memcache
 import pubsub
 from config import chain
-from eventlet import wsgi, websocket
+from eventlet import wsgi, websocket, greenpool
 
 @websocket.WebSocketWSGI
 def ws_handle_sub(ws):
     global pubsub_router
-    for msg in pubsub_router.subscribe('test'):
-        ws.send(msg)
-
-@websocket.WebSocketWSGI
-def ws_handle_pub(ws):
-    global pubsub_router
+    path = ws.path.strip('/').split('/')[2]
+    ws.send(path)
     while True:
-       m = ws.wait()
-       pubsub_router.publish('test',m)
+       for msg in pubsub_router.subscribe(path):
+           ws.send(json.dumps(msg))
 
 class ws_error:
    def GET(self,name):
        return 'This should never happen, wtf?'
+
+workpool = greenpool.GreenPool()
 
 class blocks_handler:
    def _GET(self,by,which):
@@ -49,6 +47,8 @@ class blocks_handler:
        return retval
    def POST(self):
        global block_db
+       global workpool
+       global pubsub_router
        data      = web.data()
        try:
           json_data  = json.loads(data)
@@ -62,14 +62,15 @@ class blocks_handler:
        if not chain.valid_block(block_data):
           return web.badrequest()
        interested_parties = chain.get_interested_parties(block_data)
-       return json.dumps(list(interested_parties))
+       for r in workpool.imap(lambda x: chain.notify_interested_party(block_data,x,pubsub_router),interested_parties):
+           pass
+       db_hash = block_db.store_block(block_data,block_num,block_id)
+       return json.dumps({'id':block_id,'number':block_num,'db_hash':db_hash})
 
 
 def dispatcher(environ, start_response):
     if environ['PATH_INFO'].startswith('/ws/sub'):
        return ws_handle_sub(environ, start_response)
-    elif environ['PATH_INFO'].startswith('/ws/pub'):
-       return ws_handle_pub(environ, start_response)
     return web_app.wsgifunc()(environ,start_response)
 
 if __name__=='__main__':

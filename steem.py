@@ -9,6 +9,7 @@ def gen_block_id(block_number,block_data):
     block_merkle_root_hash = hashlib.sha256(block_data['transaction_merkle_root']).digest()
     block_witness_hash     = hashlib.sha256(block_data['witness']).digest()
     final_hash = hashlib.sha256(block_id_hash+block_prev_hash+block_merkle_root_hash+block_witness_hash).hexdigest()
+    return final_hash
 
 def valid_block(block_data):
     """ Returns True if the block is valid, False otherwise
@@ -40,3 +41,11 @@ def get_interested_parties(block_data):
                if json_metadata.has_key('tags'):
                   for tag in json_metadata['tags']: retval.add(tag)
     return retval
+
+def notify_interested_party(block_data,party,router):
+    """ Sends a list of transaction ops relevant to the specified party to that party
+    """
+    for tx in block_data['transactions']:
+        for op_id,op in tx['operations']:
+            if party in op.values():
+               router.publish(party,(op_id,op))

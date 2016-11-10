@@ -34,6 +34,7 @@ class Router:
           self.feeds_subs[k].add(my_e)
        while True:
          yield my_e.wait()
+         print 'Serving event to %s' % k
          with self.feeds_e_sem:
             self.feeds_subs[k].remove(my_e)
             my_e = event.Event()

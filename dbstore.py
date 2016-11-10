@@ -53,7 +53,7 @@ class BlockStore:
        # now update memcache
        self.mc.set_multi({'ID::%s'  % str(block_id):     db_hash,
                           'NUM::%s' % str(block_number): db_hash})
-       return db_hash
+       return db_hash.encode('hex')
 
    def get_block(self,block_number=None,block_id=None):
        """ Try to load the specified block from the database
