@@ -67,11 +67,14 @@ class BlockStore:
               break
        if db_hash == None:
           if block_number != None:
-             db_hash = self.num_idx_db[str(block_number)]
+             if self.num_idx_db.has_key(block_number):
+                db_hash = self.num_idx_db[str(block_number)]
           elif block_id     != None:
-             db_hash = self.id_idx_db[str(block_id)]
+             if self.id_idx_db.has_key(block_id):
+                db_hash = self.id_idx_db[str(block_id)]
           else:
              return None
+       if db_hash == None: return None
        block_db_str  = str(self.blockdata_db[db_hash])
        block_data    = json.loads(zlib.decompress(block_db_str))
        return block_data
@@ -82,6 +85,7 @@ class BlockStore:
        self.blockdata_db.close()
 
 if __name__=='__main__':
+   raw_input('WARNING: Running tests for dbstore will wipe any existing database - if you don\'t want that, hit ctrl-c now, otherwise hit enter\n')
    store    = BlockStore()
    store.reset()
 
@@ -98,4 +102,13 @@ if __name__=='__main__':
    print 'Retrieving block 1 by both number and ID: %s' % str(store.get_block(block_id='mystuffblock1',block_number=1))
 
    print 'Retrieving block 2 by ID: %s'                 % str(store.get_block(block_id='myotherstuff'))
-
+   
+   print 'Resetting database and closing...'
+   store.reset()
+   store.close()
+   
+   print 'Cleaning up .db files...'
+   import os
+   os.unlink('blockdata.db')
+   os.unlink('blockid_idx.db')
+   os.unlink('blocknum_idx.db')

@@ -16,7 +16,44 @@ First, make sure memcached is running, next just run notifydb.py, by default it'
 
 Usage:
 
-It's a REST API, POST blocks as json to http://localhost:12036/blocks
+REST API, use JSON dicts to represent blocks
+
+/blocks/by-id/<blockID>       represents a single block by ID, HTTP GET only
+
+/blocks/by-num/<blockNumber>  represents a single block by block number, HTTP GET only
+
+/blocks can accept a POST to create a new block, the body must be JSON and consist of these fields: id,number,data
+
+If the id field is set to the string "$" then the server will assign an ID to the block
+
+
+For websockets:
+
+/ws/blocks                   gets a stream of blocks as they come in
+
+/ws/votes                    gets a stream of ALL votes as they come in
+
+/ws/comments                 gets a stream of ALL comments as they come in
+
+/ws/custom                   gets a stream of ALL custom JSON ops as they come in
+
+
+
+Most of the above can be refined to relevant params:
+
+/ws/comments/by-author/<authorName>
+
+/ws/comments/by-tag/<tagName>
+
+/ws/votes/on-author/<authorName>
+
+/ws/votes/by-voter/<voterName>
+
+/ws/votes/on-post/<postPermlink>
+
+/ws/custom/by-id/<customOpID>
+
+/ws/custom/by-author/<authorName>
 
 Backups etc:
 
