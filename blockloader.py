@@ -21,3 +21,4 @@ for x in xrange(head_block_no):
     resp_data   = json.loads(resp)['result']
     upload_data = {'id':'$','number':str(x),'data':resp_data}
     req         = requests.post('http://localhost:12036/blocks',json=upload_data)
+    print req.json()
